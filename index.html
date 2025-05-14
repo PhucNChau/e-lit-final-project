@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comms Array Calibration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Monospace&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        body {
+            font-family: 'Monospace', monospace;
+            background-color: #1a202c; /* Tailwind gray-900 */
+            color: #a0aec0; /* Tailwind gray-400 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+            overflow-x: hidden;
+        }
+        .game-container {
+            background-color: #2d3748; /* Tailwind gray-800 */
+            border: 2px solid #4a5568; /* Tailwind gray-600 */
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 700px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        .stage {
+            border: 1px dashed #4a5568; /* Tailwind gray-600 */
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.25rem;
+        }
+        h1, h2 {
+            color: #63b3ed; /* Tailwind blue-400 */
+            text-shadow: 0 0 5px #63b3ed;
+        }
+        label {
+            color: #90cdf4; /* Tailwind blue-300 */
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #4a5568; /* Tailwind gray-600 */
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #63b3ed; /* Tailwind blue-400 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #1a202c; /* Tailwind gray-900 */
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #63b3ed; /* Tailwind blue-400 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #1a202c; /* Tailwind gray-900 */
+        }
+        .btn {
+            background-color: #4299e1; /* Tailwind blue-500 */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-shadow: 0 0 3px rgba(0,0,0,0.5);
+        }
+        .btn:hover {
+            background-color: #3182ce; /* Tailwind blue-600 */
+        }
+        .btn:disabled {
+            background-color: #4a5568; /* Tailwind gray-600 */
+            cursor: not-allowed;
+        }
+        .feedback {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            min-height: 1.25rem;
+        }
+        .correct {
+            color: #48bb78; /* Tailwind green-500 */
+        }
+        .incorrect {
+            color: #f56565; /* Tailwind red-500 */
+        }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #4a5568; /* Tailwind gray-600 */
+            border-radius: 4px;
+            height: 20px;
+            margin-top: 0.5rem;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #48bb78; /* Tailwind green-500 */
+            border-radius: 4px;
+            transition: width 0.1s linear;
+        }
+        .hidden {
+            display: none;
+        }
+        .waveform-placeholder {
+            height: 50px;
+            background-color: #1e293b; /* Slightly darker gray */
+            border: 1px solid #334155; /* Even darker gray */
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #64748b; /* Muted gray */
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="text-2xl font-bold mb-4 text-center">Comms Array Calibration Sequence</h1>
+        <p class="mb-4 text-sm text-center">Interface with the alien network. Calibrate the array to establish a stable connection.</p>
+
+        <div id="stage1" class="stage">
+            <h2 class="text-xl font-semibold mb-2">Stage 1: Core Frequency Tuning</h2>
+            <!-- <p class="text-sm mb-2">Target Frequency: <span id="targetFreqDisplay" class="font-bold text-blue-300">472.5 THz</span></p> -->
+            <div>
+                <label for="coreFreqDial1">Primary Oscillator (THz): <span id="coreFreqVal1">400.0</span> THz</label>
+                <input type="range" id="coreFreqDial1" min="400" max="550" value="400" step="0.1">
+            </div>
+            <div class="waveform-placeholder">Core Waveform Monitor</div>
+            <div id="stage1Feedback" class="feedback">Adjust dial to match target.</div>
+            <button id="checkStage1" class="btn mt-2">Lock Frequency</button>
+        </div>
+
+        <div id="stage2" class="stage hidden">
+            <h2 class="text-xl font-semibold mb-2">Stage 2: Harmonic Resonance Alignment</h2>
+            <!-- <p class="text-sm mb-2">Align sub-harmonics based on Dr. Voss's research notes:</p>
+            <ul class="list-disc list-inside text-sm mb-3">
+                <li>Harmonic Alpha (2nd): Requires Phase Inversion.</li>
+                <li>Harmonic Beta (4th): Boost Amplitude to +12dB.</li>
+                <li>Harmonic Gamma (5th): Attenuate to match Energy Signature "Gamma-7" (Target Output: 0.75).</li>
+            </ul> -->
+
+            <div class="mb-3 p-2 border border-gray-700 rounded">
+                <label class="font-semibold text-blue-300">Harmonic Alpha (2nd):</label>
+                <div class="flex items-center mt-1">
+                    <input type="checkbox" id="harmonicAlphaPhase" class="mr-2"> <span>Invert Phase</span>
+                </div>
+                <div class="waveform-placeholder mt-1">Alpha Waveform</div>
+            </div>
+
+            <div class="mb-3 p-2 border border-gray-700 rounded">
+                <label for="harmonicBetaAmplitude" class="font-semibold text-blue-300">Harmonic Beta (4th) Amplitude (dB): <span id="harmonicBetaVal">-10</span> dB</label>
+                <input type="range" id="harmonicBetaAmplitude" min="-20" max="20" value="-10" step="1">
+                <div class="waveform-placeholder mt-1">Beta Waveform</div>
+            </div>
+
+            <div class="mb-3 p-2 border border-gray-700 rounded">
+                <label for="harmonicGammaAttenuation" class="font-semibold text-blue-300">Harmonic Gamma (5th) Output: <span id="harmonicGammaVal">1.00</span></label>
+                <input type="range" id="harmonicGammaAttenuation" min="0" max="2" value="1.00" step="0.01">
+                <div class="waveform-placeholder mt-1">Gamma Waveform</div>
+            </div>
+            
+            <div class="waveform-placeholder mt-2 h-16">Combined Energy Signature Display</div>
+            <div id="stage2Feedback" class="feedback">Adjust harmonic controls.</div>
+            <button id="checkStage2" class="btn mt-2">Align Harmonics</button>
+        </div>
+
+        <div id="stage3" class="stage hidden">
+            <h2 class="text-xl font-semibold mb-2">Stage 3: Network Synchronization Lock</h2>
+            <p class="text-sm mb-2">Synchronize your generated signal's amplitude to the fluctuating alien network handshake. Maintain lock for 5 seconds.</p>
+            
+            <div class="mb-2">
+                <label>Alien Handshake Signal Amplitude:</label>
+                <div class="progress-bar-container mt-1">
+                    <div id="alienSignalBar" class="progress-bar bg-red-500"></div>
+                </div>
+            </div>
+
+            <div>
+                <label for="playerSignalAmplitude">Your Signal Amplitude: <span id="playerSignalVal">50</span></label>
+                <input type="range" id="playerSignalAmplitude" min="0" max="100" value="50">
+            </div>
+            
+            <div class="mt-3">
+                <label>Synchronization Lock Progress:</label>
+                <div class="progress-bar-container">
+                    <div id="syncLockProgress" class="progress-bar"></div>
+                </div>
+            </div>
+            <div id="stage3Feedback" class="feedback">Match your signal to the alien handshake.</div>
+        </div>
+
+        <div id="gameCompleteMessage" class="hidden text-center mt-6">
+            <h2 class="text-2xl font-bold text-green-400">CALIBRATION COMPLETE!</h2>
+            <p class="text-lg text-green-300">Stable connection to alien network established.</p>
+            <p class="mt-2 text-sm">You may now proceed with [Negotiation] or [Sabotage].</p>
+        </div>
+    </div>
+
+    <script>
+        // --- Sound Synthesis ---
+        // Using Tone.js for simple audio feedback
+        const synth = new Tone.Synth().toDestination();
+        const metalSynth = new Tone.MetalSynth({
+            frequency: 50,
+            envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
+            harmonicity: 3.1,
+            modulationIndex: 16,
+            resonance: 800,
+            octaves: 0.5
+        }).toDestination();
+        metalSynth.volume.value = -15;
+
+        function playSuccessSound() {
+            Tone.loaded().then(() => {
+                synth.triggerAttackRelease("C5", "8n", Tone.now());
+                synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+            });
+        }
+        function playFailureSound() {
+             Tone.loaded().then(() => {
+                metalSynth.triggerAttackRelease("8n", Tone.now());
+            });
+        }
+        function playTickSound() {
+            Tone.loaded().then(() => {
+                synth.triggerAttackRelease("C4", "32n", Tone.now());
+            });
+        }
+         function playLockSound() {
+            Tone.loaded().then(() => {
+                synth.triggerAttackRelease("E5", "16n", Tone.now());
+            });
+        }
+
+
+        // --- Game State & Elements ---
+        let currentStage = 1;
+        const targetCoreFrequency = 472.5;
+
+        // Stage 1 Elements
+        const stage1Div = document.getElementById('stage1');
+        const coreFreqDial1 = document.getElementById('coreFreqDial1');
+        const coreFreqVal1 = document.getElementById('coreFreqVal1');
+        const stage1Feedback = document.getElementById('stage1Feedback');
+        const checkStage1Btn = document.getElementById('checkStage1');
+        //document.getElementById('targetFreqDisplay').textContent = targetCoreFrequency.toFixed(1) + " THz";
+
+
+        // Stage 2 Elements
+        const stage2Div = document.getElementById('stage2');
+        const harmonicAlphaPhase = document.getElementById('harmonicAlphaPhase');
+        const harmonicBetaAmplitude = document.getElementById('harmonicBetaAmplitude');
+        const harmonicBetaVal = document.getElementById('harmonicBetaVal');
+        const harmonicGammaAttenuation = document.getElementById('harmonicGammaAttenuation');
+        const harmonicGammaVal = document.getElementById('harmonicGammaVal');
+        const stage2Feedback = document.getElementById('stage2Feedback');
+        const checkStage2Btn = document.getElementById('checkStage2');
+
+        // Stage 3 Elements
+        const stage3Div = document.getElementById('stage3');
+        const alienSignalBar = document.getElementById('alienSignalBar');
+        const playerSignalAmplitude = document.getElementById('playerSignalAmplitude');
+        const playerSignalVal = document.getElementById('playerSignalVal');
+        const syncLockProgress = document.getElementById('syncLockProgress');
+        const stage3Feedback = document.getElementById('stage3Feedback');
+
+        const gameCompleteMessage = document.getElementById('gameCompleteMessage');
+
+        // --- Stage 1 Logic ---
+        coreFreqDial1.addEventListener('input', () => {
+            coreFreqVal1.textContent = parseFloat(coreFreqDial1.value).toFixed(1);
+            playTickSound();
+        });
+
+        checkStage1Btn.addEventListener('click', () => {
+            const currentFreq = parseFloat(coreFreqDial1.value);
+            if (Math.abs(currentFreq - targetCoreFrequency) < 0.1) { // Tolerance
+                stage1Feedback.textContent = "Core frequency locked!";
+                stage1Feedback.className = 'feedback correct';
+                playSuccessSound();
+                checkStage1Btn.disabled = true;
+                setTimeout(() => {
+                    stage1Div.classList.add('hidden');
+                    stage2Div.classList.remove('hidden');
+                    currentStage = 2;
+                }, 1500);
+            } else {
+                stage1Feedback.textContent = "Incorrect frequency. Recalibrate.";
+                stage1Feedback.className = 'feedback incorrect';
+                playFailureSound();
+            }
+        });
+
+        // --- Stage 2 Logic ---
+        // Target values for stage 2
+        const targetAlphaPhaseInverted = true;
+        const targetBetaAmplitude = 12; // +12dB
+        const targetGammaOutput = 0.75;
+
+        harmonicBetaAmplitude.addEventListener('input', () => {
+            harmonicBetaVal.textContent = harmonicBetaAmplitude.value;
+            playTickSound();
+        });
+        harmonicGammaAttenuation.addEventListener('input', () => {
+            harmonicGammaVal.textContent = parseFloat(harmonicGammaAttenuation.value).toFixed(2);
+            playTickSound();
+        });
+         harmonicAlphaPhase.addEventListener('change', () => {
+            playTickSound();
+        });
+
+
+        checkStage2Btn.addEventListener('click', () => {
+            const alphaCorrect = harmonicAlphaPhase.checked === targetAlphaPhaseInverted;
+            const betaCorrect = parseInt(harmonicBetaAmplitude.value) === targetBetaAmplitude;
+            const gammaCorrect = Math.abs(parseFloat(harmonicGammaAttenuation.value) - targetGammaOutput) < 0.01; // Tolerance
+
+            if (alphaCorrect && betaCorrect && gammaCorrect) {
+                stage2Feedback.textContent = "Harmonics aligned successfully!";
+                stage2Feedback.className = 'feedback correct';
+                playSuccessSound();
+                checkStage2Btn.disabled = true;
+                setTimeout(() => {
+                    stage2Div.classList.add('hidden');
+                    stage3Div.classList.remove('hidden');
+                    currentStage = 3;
+                    startStage3();
+                }, 1500);
+            } else {
+                let errorMsg = "Harmonic misalignment detected: ";
+                if (!alphaCorrect) errorMsg += "Alpha phase incorrect. ";
+                if (!betaCorrect) errorMsg += "Beta amplitude incorrect. ";
+                if (!gammaCorrect) errorMsg += "Gamma output incorrect. ";
+                stage2Feedback.textContent = errorMsg;
+                stage2Feedback.className = 'feedback incorrect';
+                playFailureSound();
+            }
+        });
+
+        // --- Stage 3 Logic ---
+        let alienSignalInterval;
+        let syncLockInterval;
+        let currentAlienAmplitude = 50;
+        let syncLockDuration = 0; // in milliseconds
+        const requiredSyncLockDuration = 5000; // 5 seconds
+        const syncTolerance = 10; // Player signal must be within this range of alien signal
+
+        playerSignalAmplitude.addEventListener('input', () => {
+            playerSignalVal.textContent = playerSignalAmplitude.value;
+            // No tick sound here, it's continuous adjustment
+        });
+
+        function updateAlienSignal() {
+            // Simple fluctuation: random walk
+            let change = (Math.random() - 0.5) * 20; // Change between -10 and +10
+            currentAlienAmplitude += change;
+            currentAlienAmplitude = Math.max(0, Math.min(100, currentAlienAmplitude)); // Clamp between 0 and 100
+            alienSignalBar.style.width = currentAlienAmplitude + '%';
+        }
+
+        function checkSyncLock() {
+            const currentPlayerAmp = parseInt(playerSignalAmplitude.value);
+            if (Math.abs(currentPlayerAmp - currentAlienAmplitude) <= syncTolerance) {
+                syncLockDuration += 100; // Check every 100ms
+                 if(syncLockDuration % 500 === 0) playLockSound(); // Sound every 0.5s of lock
+            } else {
+                syncLockDuration = 0; // Reset if out of tolerance
+            }
+            syncLockProgress.style.width = (syncLockDuration / requiredSyncLockDuration) * 100 + '%';
+
+            if (syncLockDuration >= requiredSyncLockDuration) {
+                stage3Feedback.textContent = "Network Synchronization Locked!";
+                stage3Feedback.className = 'feedback correct';
+                playSuccessSound();
+                clearInterval(alienSignalInterval);
+                clearInterval(syncLockInterval);
+                playerSignalAmplitude.disabled = true;
+                setTimeout(() => {
+                    stage3Div.classList.add('hidden');
+                    gameCompleteMessage.classList.remove('hidden');
+                }, 1500);
+            }
+        }
+
+        function startStage3() {
+            Tone.start(); // Ensure Tone.js context is started by user interaction
+            alienSignalInterval = setInterval(updateAlienSignal, 500); // Alien signal updates every 0.5s
+            syncLockInterval = setInterval(checkSyncLock, 100); // Check lock status every 0.1s
+        }
+
+        // Initialize
+        // No specific init needed beyond variable declaration for now.
+        // User interaction (button clicks) will start Tone.js context if not already started.
+        // Forcing Tone.js context start on first interaction.
+        document.body.addEventListener('click', () => Tone.start(), { once: true });
+
+
+    </script>
+</body>
+</html>
